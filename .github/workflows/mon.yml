@@ -38,7 +38,7 @@ jobs:
             with:
                 author_name: ${{ github.actor }}
                 author_email: ${{ github.actor }}@users.noreply.github.com
-                message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료(YYYY-MM-DD HH:MM) ✅"
+                message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($(date '+%Y-%m-%d %H:%M')) ✅"
                 add: "."
 
           # - name: 📤 실행 로그 업로드 (디버깅용)
