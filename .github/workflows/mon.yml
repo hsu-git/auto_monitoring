@@ -41,12 +41,13 @@ jobs:
                 message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료(YYYY-MM-DD HH:MM) ✅"
                 add: "."
 
-          - name: 📤 실행 로그 업로드 (디버깅용)
-            if: always()
-            uses: actions/upload-artifact@v3
-            with:
-                name: logs
-                path: "*.txt"
+          # - name: 📤 실행 로그 업로드 (디버깅용)
+          #   if: always()
+          #   uses: actions/upload-artifact@v4
+          #   with:
+          #       name: logs
+          #       path: "*.txt"
+
 
 
 
