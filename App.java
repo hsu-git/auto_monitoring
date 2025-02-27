@@ -8,8 +8,6 @@ import java.util.logging.*;
 public class App {
     public static void main(String[] args) {
         Monitoring monitoring = new Monitoring();
-//        monitoring.getNews("팔란티어", 10, 1, "date");
-//        monitoring.getNews("팔란티어", 10, 1, SortType.date);
         monitoring.getNews(System.getenv("KEYWORD"), 10, 1, SortType.date);
     }
 }
@@ -28,7 +26,6 @@ class Monitoring {
     private final Logger logger;
 
     public Monitoring() {
-//        logger = Logger.getLogger("Monitoring");
         logger = Logger.getLogger(Monitoring.class.getName());
         logger.setLevel(Level.SEVERE);
         logger.info("Monitoring 객체 생성");
@@ -36,32 +33,25 @@ class Monitoring {
 
     // 1. 검색어를 통해서 최근 10개의 뉴스를 받아올게요
     public void getNews(String keyword, int display, int start, SortType sort) {
-//    public void getNews(String keyword, int display, int start, String sort) {
-        // https://developers.naver.com/docs/serviceapi/search/news/news.md#%EB%89%B4%EC%8A%A4
-//        String url = "https://openapi.naver.com/v1/search/news.json";
-//        String params = "query=%s&display=%d&start=%d&sort=%s".formatted(
-//                keyword, display, start, sort.value
-//        );
-//        HttpClient client = HttpClient.newHttpClient(); // 클라이언트
-//        HttpRequest request = HttpRequest.newBuilder()
-//                .uri(URI.create(url + "?" + params))
-//                .GET()
-//                .header("X-Naver-Client-Id", "*****")
-//                .header("X-Naver-Client-Secret", "*****")
-//                .build();
         String imageLink = "";
         try {
-//            HttpResponse<String> response = client.send(request,
-//                    HttpResponse.BodyHandlers.ofString());
-//            String response = getDataFromAPI(keyword, display, start, sort);
             String response = getDataFromAPI("news.json", keyword, display, start, sort);
             String[] tmp = response.split("title\":\"");
             // 0번째를 제외하곤 데이터
             String[] result = new String[display];
+
+            // 🟢 뉴스 링크 배열 추가
+            String[] newsLinks = new String[display];
+
             for (int i = 1; i < tmp.length; i++) {
                 result[i - 1] = tmp[i].split("\",")[0];
+
+                // 🟢 뉴스 링크 추출
+                newsLinks[i - 1] = tmp[i].split("link\":\"")[1].split("\",")[0];
             }
             logger.info(Arrays.toString(result));
+
+            // 파일 저장
             File file = new File("%d_%s.txt".formatted(new Date().getTime(), keyword));
             if (!file.exists()) {
                 logger.info(file.createNewFile() ? "신규 생성" : "이미 있음");
@@ -73,9 +63,9 @@ class Monitoring {
                 logger.info("기록 성공");
             } // flush 및 close.
             logger.info("제목 목록 생성 완료");
+
+            // 이미지 다운로드
             String imageResponse = getDataFromAPI("image", keyword, display, start, SortType.sim);
-//            logger.info(imageResponse);
-            // 2. 이미지
             imageLink = imageResponse
                     .split("link\":\"")[1].split("\",")[0]
                     .split("\\?")[0]
@@ -89,11 +79,20 @@ class Monitoring {
                     new Date().getTime(), keyword, tmp2[tmp2.length - 1]));
             HttpClient.newHttpClient().send(request,
                     HttpResponse.BodyHandlers.ofFile(path));
+
+            // 🟢 Together API 사용하여 뉴스 요약 추가
+            String summary = getSummaryFromLLM(result);
+            logger.info("요약 결과: " + summary);
+
+            // 🟢 Slack으로 요약 + 이미지 + 뉴스 링크 전송 추가
+            sendToSlack(keyword, summary, imageLink, newsLinks);
+
         } catch (Exception e) {
             logger.severe(e.getMessage());
         }
     }
 
+    // 네이버 API 요청
     private String getDataFromAPI(String path, String keyword, int display, int start, SortType sort) throws Exception {
 //        String url = "https://openapi.naver.com/v1/search/news.json";
         String url = "https://openapi.naver.com/v1/search/%s".formatted(path);
@@ -108,8 +107,7 @@ class Monitoring {
                 .header("X-Naver-Client-Secret", System.getenv("NAVER_CLIENT_SECRET"))
                 .build();
         try {
-            HttpResponse<String> response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // http 요청을 했을 때 잘 왔는지 보는 것
             logger.info(Integer.toString(response.statusCode()));
             logger.info(response.body());
@@ -118,6 +116,68 @@ class Monitoring {
         } catch (Exception e) {
             logger.severe(e.getMessage());
             throw new Exception("연결 에러");
+        }
+    }
+
+    // 🟢 Together API 사용하여 LLM 뉴스 요약 추가
+    private String getSummaryFromLLM(String[] newsTitles) {
+        try {
+            String apiKey = System.getenv("OPEN_API_KEY");
+            String apiUrl = System.getenv("OPEN_API_URL");
+            String model = System.getenv("OPEN_API_MODEL");
+            String promptTemplate = System.getenv("LLM_PROMPT");
+            String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiUrl))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            "{ \"model\": \"" + model + "\", \"prompt\": \"" + prompt + "\", \"max_tokens\": 200 }"
+                    ))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body().split("\"text\":\"")[1].split("\"")[0]; // 응답에서 요약 부분 추출
+        } catch (Exception e) {
+            logger.severe("LLM 요청 오류: " + e.getMessage());
+            return "요약 실패";
+        }
+    }
+
+    // 🟢 Slack 메시지 개선 (이미지 & 뉴스 링크 추가)
+    private void sendToSlack(String keyword, String summary, String imageUrl, String[] newsLinks) {
+        try {
+            String webhookUrl = System.getenv("SLACK_WEBHOOK_URL");
+            String title = System.getenv("SLACK_WEBHOOK_TITLE");
+
+            // 🔗 뉴스 링크들 정리
+            StringBuilder linksMessage = new StringBuilder();
+            for (String link : newsLinks) {
+                linksMessage.append("🔗 ").append(link).append("\n");
+            }
+
+            // 이미지 포함 메시지 (Slack의 `attachments` 사용)
+            String message = "{"
+                    + "\"text\": \"" + title + "\\n🔔 *" + keyword + "* 뉴스 요약:\\n" + summary + "\","
+                    + "\"attachments\": ["
+                    + "{ \"text\": \"" + linksMessage.toString() + "\", \"image_url\": \"" + imageUrl + "\" }"
+                    + "]"
+                    + "}";
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(webhookUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(message))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Slack 전송 결과: " + response.body());
+
+        } catch (Exception e) {
+            logger.severe("Slack 전송 오류: " + e.getMessage());
         }
     }
 }
