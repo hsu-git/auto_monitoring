@@ -249,10 +249,18 @@ class Monitoring {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            logger.info("Slack 전송 결과: " + response.body());
+            // ✅ Slack 응답 상태 코드 및 본문 로그 출력
+            logger.info("Slack 응답 코드: " + response.statusCode());
+            logger.info("Slack 응답 본문: " + response.body());
+
+            if (response.statusCode() != 200) {
+                logger.severe("🔴 Slack 메시지 전송 실패! 응답 코드: " + response.statusCode());
+            } else {
+                logger.info("✅ Slack 메시지 전송 성공!");
+            }
 
         } catch (Exception e) {
-            logger.severe("Slack 전송 오류: " + e.getMessage());
+            logger.severe("🔴 Slack 전송 오류: " + e.getMessage());
         }
     }
 }
