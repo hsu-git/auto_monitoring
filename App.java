@@ -126,7 +126,17 @@ class Monitoring {
             String apiUrl = System.getenv("OPEN_API_URL");
             String model = System.getenv("OPEN_API_MODEL");
             String promptTemplate = System.getenv("LLM_PROMPT");
+            // String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
+
+            // 🟢 🔍 프롬프트 치환 과정 확인 (디버깅용)
             String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
+            logger.info("📝 LLM 프롬프트: " + prompt);
+
+            // 🟢 Together API 요청 로그
+            logger.info("🟢 Together API 호출 시작...");
+            logger.info("🔗 API URL: " + apiUrl);
+            logger.info("🔑 API Key 사용 여부: " + (apiKey != null ? "✅ 있음" : "❌ 없음"));
+            logger.info("📝 모델: " + model);
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
@@ -139,9 +149,18 @@ class Monitoring {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            logger.info("🟢 LLM 응답 코드: " + response.statusCode());
+            logger.info("🟢 LLM 응답 본문: " + response.body());
+
+            if (response.statusCode() != 200) {
+                logger.severe("🔴 LLM API 요청 실패! 응답 코드: " + response.statusCode());
+                return "요약 실패 (API 오류)";
+            }
+
             return response.body().split("\"text\":\"")[1].split("\"")[0]; // 응답에서 요약 부분 추출
         } catch (Exception e) {
-            logger.severe("LLM 요청 오류: " + e.getMessage());
+            logger.severe("🔴 LLM 요청 오류: " + e.getMessage());
             return "요약 실패";
         }
     }
