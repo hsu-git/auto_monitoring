@@ -241,6 +241,9 @@ class Monitoring {
                     + "\"attachments\": [{ \"text\": \"" + linksMessage.toString() + "\", \"image_url\": \"" + imageUrl + "\" }]"
                     + "}";
                     
+            // ✅ Slack 메시지 JSON을 로그로 출력
+            logger.info("📤 Slack 메시지 JSON: " + message);
+
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
