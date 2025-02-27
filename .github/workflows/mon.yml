@@ -33,13 +33,23 @@ jobs:
               SLACK_WEBHOOK_TITLE: ${{ vars.SLACK_WEBHOOK_TITLE }}  # 🟢 Slack 메시지 제목
               SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}  # 🟢 Slack Webhook URL (요약된 뉴스 전송)
 
+
           - name: 📂 실행 결과 파일 커밋
-            uses: EndBug/add-and-commit@v9
-            with:
-                author_name: ${{ github.actor }}
-                author_email: ${{ github.actor }}@users.noreply.github.com
-                message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($(date '+%Y-%m-%d %H:%M')) ✅"
-                add: "."
+            run: |
+              TIMESTAMP=$(date '+%Y-%m-%d %H:%M')  # 🟢 현재 날짜 저장
+              git config --global user.name "${{ github.actor }}"
+              git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+              git add .
+              git commit -m "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($TIMESTAMP)"
+              git push
+  
+          # - name: 📂 실행 결과 파일 커밋
+          #   uses: EndBug/add-and-commit@v9
+          #   with:
+          #       author_name: ${{ github.actor }}
+          #       author_email: ${{ github.actor }}@users.noreply.github.com
+          #       message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($(date '+%Y-%m-%d %H:%M')) ✅"
+          #       add: "."
 
           # - name: 📤 실행 로그 업로드 (디버깅용)
           #   if: always()
