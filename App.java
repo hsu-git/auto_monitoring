@@ -129,7 +129,10 @@ class Monitoring {
             // String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
 
             // 🟢 🔍 프롬프트 치환 과정 확인 (디버깅용)
-            String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
+            // String prompt = promptTemplate.replace("{news}", String.join("\n", newsTitles));
+            // 🟢 `newsTitles`가 비어 있을 경우 대비하여 기본 요청 메시지를 추가
+            String newsContent = newsTitles.length > 0 ? String.join("\n", newsTitles) : "최근 뉴스 기사 목록을 요약해줘.";
+            String prompt = promptTemplate.replace("{news}", newsContent);
             logger.info("📝 LLM 프롬프트: " + prompt);
 
             // 🟢 Together API 요청 로그
