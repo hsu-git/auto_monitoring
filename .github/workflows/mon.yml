@@ -1,62 +1,108 @@
-name: 자동 모니터링
+name: 📢 자동 뉴스 모니터링
 
 on:
-    workflow_dispatch:
-    schedule:
-        - cron: "0 * * * *"  # 🕛 매 정각(00분)에 실행
+  workflow_dispatch:  # 수동 실행 가능
+  schedule:
+    - cron: "0 * * * *"  # 매 정각 실행 (UTC 기준, 한국 시간 KST = UTC+9)
 
 jobs:
-    monitor-news:
-        runs-on: ubuntu-latest
-        steps:
-          - name: 📥 저장소에서 코드 불러오기
-            uses: actions/checkout@v4
-    
-          - name: ⚙️ Java 17 설정
-            uses: actions/setup-java@v4
-            with:
-              distribution: temurin
-              java-version: '17'
-    
-          - name: 🛠️ Java 코드 컴파일 및 실행
-            run: |
-              javac App.java
-              java App
-            env:
-              KEYWORD: ${{ vars.KEYWORD }}  # 🔍 검색 키워드
-              NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}  # 🟢 네이버 API 클라이언트 ID
-              NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}  # 🟢 네이버 API 클라이언트 시크릿
-              OPEN_API_KEY: ${{ secrets.OPEN_API_KEY }}  # 🟢 Together API 키 (LLM)
-              OPEN_API_URL: ${{ secrets.OPEN_API_URL }}  # 🟢 Together API URL (LLM)
-              OPEN_API_MODEL: ${{ secrets.OPEN_API_MODEL }}  # 🟢 Together API 모델명 (예: "gpt-4")
-              LLM_PROMPT: ${{ vars.LLM_PROMPT }}  # 🟢 Together API 프롬프트 템플릿
-              SLACK_WEBHOOK_TITLE: ${{ vars.SLACK_WEBHOOK_TITLE }}  # 🟢 Slack 메시지 제목
-              SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}  # 🟢 Slack Webhook URL (요약된 뉴스 전송)
+  monitor-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚀 저장소에서 코드 불러오기
+        uses: actions/checkout@v4
+
+      - name: ☕ Java 17 설정
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 🛠️ Java 코드 컴파일 및 실행
+        run: |
+          javac App.java
+          java App
+        env:
+          KEYWORD: ${{ vars.KEYWORD }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          OPEN_API_KEY: ${{ secrets.OPEN_API_KEY }}
+          OPEN_API_URL: ${{ secrets.OPEN_API_URL }}
+          OPEN_API_MODEL: ${{ secrets.OPEN_API_MODEL }}
+          LLM_PROMPT_CATEGORIZE: ${{ vars.LLM_PROMPT_CATEGORIZE }}
+          SLACK_WEBHOOK_TITLE: ${{ vars.SLACK_WEBHOOK_TITLE }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📂 실행 결과 파일 커밋
+        run: |
+          TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git add .
+          git commit -m "📰 자동 뉴스 모니터링 실행 완료 ($TIMESTAMP)"
+          git push
 
 
-          - name: 📂 실행 결과 파일 커밋
-            run: |
-              TIMESTAMP=$(date '+%Y-%m-%d %H:%M')  # 🟢 현재 날짜 저장
-              git config --global user.name "${{ github.actor }}"
-              git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-              git add .
-              git commit -m "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($TIMESTAMP)"
-              git push
+# name: 자동 모니터링
+
+# on:
+#     workflow_dispatch:
+#     schedule:
+#         - cron: "0 * * * *"  # 🕛 매 정각(00분)에 실행
+
+# jobs:
+#     monitor-news:
+#         runs-on: ubuntu-latest
+#         steps:
+#           - name: 📥 저장소에서 코드 불러오기
+#             uses: actions/checkout@v4
+    
+#           - name: ⚙️ Java 17 설정
+#             uses: actions/setup-java@v4
+#             with:
+#               distribution: temurin
+#               java-version: '17'
+    
+#           - name: 🛠️ Java 코드 컴파일 및 실행
+#             run: |
+#               javac App.java
+#               java App
+#             env:
+#               KEYWORD: ${{ vars.KEYWORD }}  # 🔍 검색 키워드
+#               NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}  # 🟢 네이버 API 클라이언트 ID
+#               NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}  # 🟢 네이버 API 클라이언트 시크릿
+#               OPEN_API_KEY: ${{ secrets.OPEN_API_KEY }}  # 🟢 Together API 키 (LLM)
+#               OPEN_API_URL: ${{ secrets.OPEN_API_URL }}  # 🟢 Together API URL (LLM)
+#               OPEN_API_MODEL: ${{ secrets.OPEN_API_MODEL }}  # 🟢 Together API 모델명 (예: "gpt-4")
+#               LLM_PROMPT: ${{ vars.LLM_PROMPT }}  # 🟢 Together API 프롬프트 템플릿
+#               SLACK_WEBHOOK_TITLE: ${{ vars.SLACK_WEBHOOK_TITLE }}  # 🟢 Slack 메시지 제목
+#               SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}  # 🟢 Slack Webhook URL (요약된 뉴스 전송)
+
+
+#           - name: 📂 실행 결과 파일 커밋
+#             run: |
+#               TIMESTAMP=$(date '+%Y-%m-%d %H:%M')  # 🟢 현재 날짜 저장
+#               git config --global user.name "${{ github.actor }}"
+#               git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+#               git add .
+#               git commit -m "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($TIMESTAMP)"
+#               git push
   
-          # - name: 📂 실행 결과 파일 커밋
-          #   uses: EndBug/add-and-commit@v9
-          #   with:
-          #       author_name: ${{ github.actor }}
-          #       author_email: ${{ github.actor }}@users.noreply.github.com
-          #       message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($(date '+%Y-%m-%d %H:%M')) ✅"
-          #       add: "."
+#           # - name: 📂 실행 결과 파일 커밋
+#           #   uses: EndBug/add-and-commit@v9
+#           #   with:
+#           #       author_name: ${{ github.actor }}
+#           #       author_email: ${{ github.actor }}@users.noreply.github.com
+#           #       message: "📰 자동 뉴스 모니터링: LLM 요약 생성 및 Slack 전송 완료 ($(date '+%Y-%m-%d %H:%M')) ✅"
+#           #       add: "."
 
-          # - name: 📤 실행 로그 업로드 (디버깅용)
-          #   if: always()
-          #   uses: actions/upload-artifact@v4
-          #   with:
-          #       name: logs
-          #       path: "*.txt"
+#           # - name: 📤 실행 로그 업로드 (디버깅용)
+#           #   if: always()
+#           #   uses: actions/upload-artifact@v4
+#           #   with:
+#           #       name: logs
+#           #       path: "*.txt"
 
 
 
